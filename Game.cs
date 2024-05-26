@@ -89,27 +89,83 @@ public partial class Game : ObservableObject
             CurrentPlayer = null;
     }
 
-    private char GetAIChar()
-    {
-        return Numbers[random.Next(Numbers.Count)].number;
-    }
+   private char GetBestMove()
+{
+    char bestMove = ' ';
+    int bestEval = int.MinValue;
 
-    private async void PlayNextAIMove()
+    foreach (var gameNumber in Numbers)
     {
-        if (CurrentPlayer == Player.Player2)
+        var savedWord = wordBuilder.ToString();
+        wordBuilder.Append(gameNumber.Number);
+        RemovedRepetition = RepetitionRemover.RemoveRepetition(wordBuilder);
+        int eval = Minimax(3, int.MinValue, int.MaxValue, true);
+        wordBuilder.Clear();
+        wordBuilder.Append(savedWord);
+
+        if (eval > bestEval)
         {
-            await Task.Delay(1000);
-
-            var number = GetAIChar();
-            wordBuilder.Append(number);
-            RemovedRepetition = RepetitionRemover.RemoveRepetition(wordBuilder);
-            if (RemovedRepetition != string.Empty)
-                RemovedRepetition = $"Usunięto repetycje {RemovedRepetition}";
-
-            Word = wordBuilder.ToString();
-            NextPlayer();
+            bestEval = eval;
+            bestMove = gameNumber.Number;
         }
     }
+
+    return bestMove;
+}
+
+private int Minimax(int depth, int alpha, int beta, bool maximizingPlayer)
+{
+    if (IsGameFinished || depth == 0)
+        return Evaluate();
+
+    if (maximizingPlayer)
+    {
+        int maxEval = int.MinValue;
+        foreach (var gameNumber in Numbers)
+        {
+            var savedWord = wordBuilder.ToString();
+            wordBuilder.Append(gameNumber.Number);
+            RemovedRepetition = RepetitionRemover.RemoveRepetition(wordBuilder);
+            int eval = Minimax(depth - 1, alpha, beta, false);
+            wordBuilder.Clear();
+            wordBuilder.Append(savedWord);
+
+            maxEval = Math.Max(maxEval, eval);
+            alpha = Math.Max(alpha, eval);
+            if (beta <= alpha)
+                break;
+        }
+        return maxEval;
+    }
+    else
+    {
+        int minEval = int.MaxValue;
+        foreach (var gameNumber in Numbers)
+        {
+            var savedWord = wordBuilder.ToString();
+            wordBuilder.Append(gameNumber.Number);
+            RemovedRepetition = RepetitionRemover.RemoveRepetition(wordBuilder);
+            int eval = Minimax(depth - 1, alpha, beta, true);
+            wordBuilder.Clear();
+            wordBuilder.Append(savedWord);
+
+            minEval = Math.Min(minEval, eval);
+            beta = Math.Min(beta, eval);
+            if (beta <= alpha)
+                break;
+        }
+        return minEval;
+    }
+}
+
+private int Evaluate()
+{
+    if (wordBuilder.Length >= N)
+        return int.MaxValue; // Winning state for the AI
+    if (C <= 0)
+        return int.MinValue; // Winning state for the human player
+    return wordBuilder.Length; // Longer word is better for the AI
+}
 
     [RelayCommand]
     public void SelectNumber(GameNumber gameNumber)
