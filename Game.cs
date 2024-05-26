@@ -88,7 +88,23 @@ public partial class Game : ObservableObject
         else
             CurrentPlayer = null;
     }
+    
+    private async void PlayNextAIMove()
+    {
+        if (CurrentPlayer == Player.Player2)
+        {
+            await Task.Delay(1000);
 
+            var number = GetBestMove();
+            wordBuilder.Append(number);
+            RemovedRepetition = RepetitionRemover.RemoveRepetition(wordBuilder);
+            if (RemovedRepetition != string.Empty)
+                RemovedRepetition = $"Usunięto repetycje {RemovedRepetition}";
+
+            Word = wordBuilder.ToString();
+            NextPlayer();
+        }
+    }
    private char GetBestMove()
 {
     char bestMove = ' ';
